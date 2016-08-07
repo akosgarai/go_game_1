@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -12,10 +15,35 @@ type Game struct {
 	board  [][]string
 }
 
+func clearScreen() {
+	c := exec.Command("clear")
+	c.Stdout = os.Stdout
+	c.Run()
+}
+
+func userInputForm(question string) string {
+	clearScreen()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(question, "\n")
+	text, _ := reader.ReadString('\n')
+	return text
+}
+func initGame() Game {
+	var p1Name, p2Name string
+	var boardRow, boardCol int
+	p1Name = userInputForm("First player's name?")
+	p2Name = userInputForm("Second player's name?")
+	boardRow = 5
+	boardCol = 5
+	return Game{p1Name, p2Name, "p1", initBoard(boardRow, boardCol)}
+}
+
 func main() {
-	game := Game{"Player 1", "Player 2", "p1", initBoard(5, 7)}
+	game := initGame()
+	clearScreen()
 	drawBoard(game.board)
 	changeValue(game.board, 1, 3, "X")
+	clearScreen()
 	drawBoard(game.board)
 }
 
