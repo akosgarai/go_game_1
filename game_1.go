@@ -10,6 +10,7 @@ import (
 )
 
 const timeDefault int = 120
+const targetNum int = 5
 const numOfRows int = 10
 const numOfCols int = 10
 
@@ -119,7 +120,11 @@ func game_fsm(game Game) {
 			}
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "X")
-				game.state = "p2"
+				if isWinnerStep(t, game.board) {
+					game.state = "p1_win"
+				} else {
+					game.state = "p2"
+				}
 			}
 		case "p2":
 			t := userInputHandler(game)
@@ -130,7 +135,11 @@ func game_fsm(game Game) {
 			}
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "O")
-				game.state = "p1"
+				if isWinnerStep(t, game.board) {
+					game.state = "p2_win"
+				} else {
+					game.state = "p1"
+				}
 			}
 		case "p2_fall":
 			newGame := userRestartHandler()
@@ -150,6 +159,25 @@ func game_fsm(game Game) {
 				game.board = initBoard(numOfRows, numOfCols)
 				game.state = "p1"
 			}
+		case "p1_win":
+			game.p1.points = game.p1.points + 1
+			game.p1.timeLeft = timeDefault
+			game.p2.timeLeft = timeDefault
+			game.board = initBoard(numOfRows, numOfCols)
+			newGame := userRestartHandler()
+			if newGame {
+				game.state = "p1"
+			}
+
+		case "p2_win":
+			game.p2.points = game.p2.points + 1
+			game.p1.timeLeft = timeDefault
+			game.p2.timeLeft = timeDefault
+			game.board = initBoard(numOfRows, numOfCols)
+			newGame := userRestartHandler()
+			if newGame {
+				game.state = "p2"
+			}
 		}
 		clearScreen()
 		drawMenu(game.p1, game.p2)
@@ -158,8 +186,106 @@ func game_fsm(game Game) {
 	}
 }
 
-func isWinnerStep(t Target) bool {
-	return true
+func isWinnerStep(t Target, b [][]string) bool {
+	var row, col int = t.row, t.col
+	var expected string = b[row][col]
+	var j, k int = 1, 1
+	var totalHit int = 1
+	direction := 1 //1 - up-down, 2 - left-right, 3 - up,right-down,left, 4 - up,left-down,right
+	for direction < 5 {
+		switch direction {
+		case 1:
+			totalHit = 1
+			j = 1
+			//check up
+			for row-j >= 0 && b[row-j][col] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				j = j + 1
+			}
+			//check down
+			k = 1
+			//check up
+			for row+k < numOfRows && b[row+k][col] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				k = k + 1
+			}
+			direction = 2
+		case 2:
+			totalHit = 1
+			j = 1
+			//check up
+			for col-j >= 0 && b[row][col-j] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				j = j + 1
+			}
+			//check down
+			k = 1
+			//check up
+			for col+k < numOfCols && b[row][col+k] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				k = k + 1
+			}
+			direction = 3
+		case 3:
+			totalHit = 1
+			j = 1
+			//check up
+			for row+j < numOfRows && col+j < numOfCols && b[row+j][col+j] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				j = j + 1
+			}
+			//check down
+			k = 1
+			//check up
+			for row-k >= 0 && col-k >= 0 && b[row-k][col-k] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				k = k + 1
+			}
+			direction = 4
+		case 4:
+			totalHit = 1
+			j = 1
+			//check up
+			for row-j >= 0 && col+j < numOfRows && b[row-j][col+j] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				j = j + 1
+			}
+			//check down
+			k = 1
+			//check up
+			for row+k < numOfRows && col-k >= 0 && b[row+k][col-k] == expected {
+				totalHit = totalHit + 1
+				if totalHit >= targetNum {
+					return true
+				}
+				k = k + 1
+			}
+			direction = 5
+			return false
+		}
+	}
+	return false
 }
 
 func main() {
