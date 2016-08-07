@@ -10,6 +10,8 @@ import (
 )
 
 const timeDefault int = 120
+const numOfRows int = 10
+const numOfCols int = 10
 
 type Game struct {
 	p1    User
@@ -57,12 +59,9 @@ func userRestartHandler() bool {
 }
 func initGame() Game {
 	var p1Name, p2Name string
-	var boardRow, boardCol int
 	p1Name = userInputForm("First player's name?")
 	p2Name = userInputForm("Second player's name?")
-	boardRow = 10
-	boardCol = 10
-	return Game{User{p1Name, timeDefault, 0, Target{-1, -1, -1}}, User{p2Name, timeDefault, 0, Target{-1, -1, -1}}, "p1", initBoard(boardRow, boardCol)}
+	return Game{User{p1Name, timeDefault, 0, Target{-1, -1, -1}}, User{p2Name, timeDefault, 0, Target{-1, -1, -1}}, "p1", initBoard(numOfRows, numOfCols)}
 }
 
 func drawUserInfo(game Game) {
@@ -139,7 +138,7 @@ func game_fsm(game Game) {
 				game.p1.points = game.p1.points + 1
 				game.p1.timeLeft = timeDefault
 				game.p2.timeLeft = timeDefault
-				game.board = initBoard(10, 10)
+				game.board = initBoard(numOfRows, numOfCols)
 				game.state = "p2"
 			}
 		case "p1_fall":
@@ -148,7 +147,7 @@ func game_fsm(game Game) {
 				game.p2.points = game.p2.points + 1
 				game.p1.timeLeft = timeDefault
 				game.p2.timeLeft = timeDefault
-				game.board = initBoard(10, 10)
+				game.board = initBoard(numOfRows, numOfCols)
 				game.state = "p1"
 			}
 		}
@@ -157,6 +156,10 @@ func game_fsm(game Game) {
 		drawBoard(game.board)
 		drawUserInfo(game)
 	}
+}
+
+func isWinnerStep(t Target) bool {
+	return true
 }
 
 func main() {
