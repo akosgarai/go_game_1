@@ -9,10 +9,10 @@ import (
 )
 
 type Game struct {
-	p1     string
-	p2     string
-	actual string
-	board  [][]string
+	p1    string
+	p2    string
+	state string
+	board [][]string
 }
 
 func clearScreen() {
