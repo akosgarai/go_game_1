@@ -24,8 +24,9 @@ type User struct {
 }
 
 type Target struct {
-	row int
-	col int
+	row  int
+	col  int
+	time int
 }
 
 func clearScreen() {
@@ -48,7 +49,7 @@ func initGame() Game {
 	p2Name = userInputForm("Second player's name?")
 	boardRow = 10
 	boardCol = 10
-	return Game{User{p1Name, 120, 0, Target{-1, -1}}, User{p2Name, 120, 0, Target{-1, -1}}, "p1", initBoard(boardRow, boardCol)}
+	return Game{User{p1Name, 120, 0, Target{-1, -1, -1}}, User{p2Name, 120, 0, Target{-1, -1, -1}}, "p1", initBoard(boardRow, boardCol)}
 }
 
 func drawUserInfo(game Game) {
@@ -64,7 +65,14 @@ func drawUserInfo(game Game) {
 	}
 }
 
+func getElapsedTime(t1, t2 int64) int {
+	diff := t2 - t1
+	diffInSec := diff / int64(time.Second)
+	return int(diffInSec)
+}
+
 func userInputHandler(game Game) Target {
+	t := time.Now().UTC().UnixNano()
 	var i, j int
 	fmt.Print("Row: ")
 	_, err := fmt.Scanf("%d", &i)
@@ -74,11 +82,13 @@ func userInputHandler(game Game) Target {
 
 		if err2 == nil {
 			if game.board[i][j] == "_" {
-				return Target{i, j}
+				t2 := time.Now().UTC().UnixNano()
+				return Target{i, j, getElapsedTime(t, t2)}
 			}
 		}
 	}
-	return Target{-1, -1}
+	t2 := time.Now().UTC().UnixNano()
+	return Target{-1, -1, getElapsedTime(t, t2)}
 }
 
 func game_fsm(game Game) {
@@ -90,12 +100,14 @@ func game_fsm(game Game) {
 		switch game.state {
 		case "p1":
 			t := userInputHandler(game)
+			game.p1.timeLeft = game.p1.timeLeft - t.time
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "X")
 				game.state = "p2"
 			}
 		case "p2":
 			t := userInputHandler(game)
+			game.p2.timeLeft = game.p2.timeLeft - t.time
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "O")
 				game.state = "p1"
