@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const timeDefault int = 120
+
 type Game struct {
 	p1    User
 	p2    User
@@ -42,6 +44,17 @@ func userInputForm(question string) string {
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
 }
+func userRestartHandler() bool {
+	clearScreen()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("New game?\n")
+	text, _ := reader.ReadString('\n')
+	niceText := strings.Replace(text, "\n", "", -1)
+	if niceText == "no" {
+		return false
+	}
+	return true
+}
 func initGame() Game {
 	var p1Name, p2Name string
 	var boardRow, boardCol int
@@ -49,7 +62,7 @@ func initGame() Game {
 	p2Name = userInputForm("Second player's name?")
 	boardRow = 10
 	boardCol = 10
-	return Game{User{p1Name, 120, 0, Target{-1, -1, -1}}, User{p2Name, 120, 0, Target{-1, -1, -1}}, "p1", initBoard(boardRow, boardCol)}
+	return Game{User{p1Name, timeDefault, 0, Target{-1, -1, -1}}, User{p2Name, timeDefault, 0, Target{-1, -1, -1}}, "p1", initBoard(boardRow, boardCol)}
 }
 
 func drawUserInfo(game Game) {
@@ -101,6 +114,10 @@ func game_fsm(game Game) {
 		case "p1":
 			t := userInputHandler(game)
 			game.p1.timeLeft = game.p1.timeLeft - t.time
+			if game.p1.timeLeft < 0 {
+				game.state = "p1_fall"
+				continue
+			}
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "X")
 				game.state = "p2"
@@ -108,8 +125,30 @@ func game_fsm(game Game) {
 		case "p2":
 			t := userInputHandler(game)
 			game.p2.timeLeft = game.p2.timeLeft - t.time
+			if game.p2.timeLeft < 0 {
+				game.state = "p2_fall"
+				continue
+			}
 			if t.row > -1 && t.col > -1 {
 				changeValue(game.board, t.row, t.col, "O")
+				game.state = "p1"
+			}
+		case "p2_fall":
+			newGame := userRestartHandler()
+			if newGame {
+				game.p1.points = game.p1.points + 1
+				game.p1.timeLeft = timeDefault
+				game.p2.timeLeft = timeDefault
+				game.board = initBoard(10, 10)
+				game.state = "p2"
+			}
+		case "p1_fall":
+			newGame := userRestartHandler()
+			if newGame {
+				game.p2.points = game.p2.points + 1
+				game.p1.timeLeft = timeDefault
+				game.p2.timeLeft = timeDefault
+				game.board = initBoard(10, 10)
 				game.state = "p1"
 			}
 		}
