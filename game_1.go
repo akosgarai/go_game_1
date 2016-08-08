@@ -40,10 +40,10 @@ func clearScreen() {
 	c.Run()
 }
 
-func userInputForm(question string) string {
+func getUserInputAfterPrintedText(textToPrint string) string {
 	clearScreen()
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(question, "\n")
+	fmt.Print(textToPrint, "\n")
 	text, _ := reader.ReadString('\n')
 	return strings.Replace(text, "\n", "", -1)
 }
@@ -60,8 +60,8 @@ func userRestartHandler() bool {
 }
 func initGame() Game {
 	var p1Name, p2Name string
-	p1Name = userInputForm("First player's name?")
-	p2Name = userInputForm("Second player's name?")
+	p1Name = getUserInputAfterPrintedText("First player's name?")
+	p2Name = getUserInputAfterPrintedText("Second player's name?")
 	return Game{User{p1Name, timeDefault, 0, Target{-1, -1, -1}}, User{p2Name, timeDefault, 0, Target{-1, -1, -1}}, "p1", initBoard(numOfRows, numOfCols)}
 }
 
