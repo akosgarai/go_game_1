@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"os/exec"
+	"github.com/garaiakos/go_game_1_input"
 	"strings"
 	"time"
 )
@@ -35,21 +33,14 @@ type Target struct {
 }
 
 func clearScreen() {
-	c := exec.Command("clear")
-	c.Stdout = os.Stdout
-	c.Run()
+	go_game_1_input.Clear_screen()
 }
 
 func getStringUserInputAfterPrintedText(textToPrint string) string {
-	clearScreen()
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(textToPrint, "\n")
-	text, _ := reader.ReadString('\n')
-	return strings.Replace(text, "\n", "", -1)
+	return go_game_1_input.Get_string(textToPrint)
 }
 func userRestartHandler(u User) bool {
-	var response string
-	var statusmsg string
+	var response, statusmsg string
 	statusmsg = "Player " + u.name + " won\nNew game?"
 	response = getStringUserInputAfterPrintedText(statusmsg)
 	if response == "no" {
@@ -96,14 +87,7 @@ func getElapsedTime(t1, t2 int64) int {
 }
 
 func getNumericUserInputWithPrintedText(userText string) int {
-	var i int
-	fmt.Print(userText, " ")
-	_, err := fmt.Scanf("%d", &i)
-	if err == nil {
-		return i
-	} else {
-		return -1
-	}
+	return go_game_1_input.Get_numeric(userText)
 }
 
 func userInputHandler() Target {
