@@ -40,7 +40,7 @@ func clearScreen() {
 	c.Run()
 }
 
-func getUserInputAfterPrintedText(textToPrint string) string {
+func getStringUserInputAfterPrintedText(textToPrint string) string {
 	clearScreen()
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print(textToPrint, "\n")
@@ -48,33 +48,42 @@ func getUserInputAfterPrintedText(textToPrint string) string {
 	return strings.Replace(text, "\n", "", -1)
 }
 func userRestartHandler() bool {
-	clearScreen()
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("New game?\n")
-	text, _ := reader.ReadString('\n')
-	niceText := strings.Replace(text, "\n", "", -1)
-	if niceText == "no" {
+	var response string
+	response = getStringUserInputAfterPrintedText("New game?")
+	if response == "no" {
 		return false
 	}
 	return true
 }
 func initGame() Game {
 	var p1Name, p2Name string
-	p1Name = getUserInputAfterPrintedText("First player's name?")
-	p2Name = getUserInputAfterPrintedText("Second player's name?")
+	p1Name = ""
+	for p1Name == "" {
+		p1Name = getStringUserInputAfterPrintedText("First player's name?")
+	}
+	p2Name = ""
+	for p2Name == "" {
+		p2Name = getStringUserInputAfterPrintedText("Second player's name?")
+	}
 	return Game{User{p1Name, timeDefault, 0, Target{-1, -1, -1}}, User{p2Name, timeDefault, 0, Target{-1, -1, -1}}, "p1", initBoard(numOfRows, numOfCols)}
 }
 
 func drawUserInfo(game Game) {
-	//var i int
-	//var q []string
 	switch game.state {
 	case "p1":
-		fmt.Print(game.p1.name, " turn.")
+		fmt.Print(game.p1.name, " turn.\n")
 	case "p2":
-		fmt.Print(game.p2.name, " turn.")
+		fmt.Print(game.p2.name, " turn.\n")
 	case "end":
-		fmt.Print("end\n")
+		var winner string
+		if game.p1.points > game.p2.points {
+			winner = game.p1.name
+		} else if game.p1.points < game.p2.points {
+			winner = game.p2.name
+		} else {
+			winner = "Points are equal, both players are looser."
+		}
+		fmt.Print("The winner is: ", winner, "\n")
 	}
 }
 
@@ -84,31 +93,45 @@ func getElapsedTime(t1, t2 int64) int {
 	return int(diffInSec)
 }
 
-func userInputHandler(game Game) Target {
-	t := time.Now().UTC().UnixNano()
-	var i, j int
-	fmt.Print("Row: ")
+func getNumericUserInputWithPrintedText(userText string) int {
+	var i int
+	fmt.Print(userText, " ")
 	_, err := fmt.Scanf("%d", &i)
 	if err == nil {
-		fmt.Print("Col: ")
-		_, err2 := fmt.Scanf("%d", &j)
-
-		if err2 == nil {
-			if game.board[i][j] == "_" {
-				t2 := time.Now().UTC().UnixNano()
-				return Target{i, j, getElapsedTime(t, t2)}
-			}
-		}
+		return i
+	} else {
+		return -1
 	}
-	t2 := time.Now().UTC().UnixNano()
-	return Target{-1, -1, getElapsedTime(t, t2)}
 }
 
-func game_fsm(game Game) {
+func userInputHandler(game Game) Target {
+	var i, j int
+	t := time.Now().UTC().UnixNano()
+	i = getNumericUserInputWithPrintedText("Row:")
+	if i > -1 {
+		j = getNumericUserInputWithPrintedText("Col:")
+	} else {
+		j = -1
+	}
+	t2 := time.Now().UTC().UnixNano()
+	return Target{i, j, getElapsedTime(t, t2)}
+}
+
+func restartGame(game Game) {
+	game.p1.timeLeft = timeDefault
+	game.p2.timeLeft = timeDefault
+	game.board = initBoard(numOfRows, numOfCols)
+}
+
+func drawScreen(game Game) {
 	clearScreen()
 	drawMenu(game.p1, game.p2)
 	drawBoard(game.board)
 	drawUserInfo(game)
+}
+
+func game_fsm(game Game) {
+	drawScreen(game)
 	for game.state != "end" {
 		switch game.state {
 		case "p1":
@@ -119,8 +142,9 @@ func game_fsm(game Game) {
 				continue
 			}
 			if t.row > -1 && t.col > -1 {
-				changeValue(game.board, t.row, t.col, "X")
-				if isWinnerStep(t, game.board) {
+				if !changeValue(game.board, t.row, t.col, "X") {
+					game.state = "p1"
+				} else if isWinnerStep(t, game.board) {
 					game.state = "p1_win"
 				} else {
 					game.state = "p2"
@@ -134,8 +158,9 @@ func game_fsm(game Game) {
 				continue
 			}
 			if t.row > -1 && t.col > -1 {
-				changeValue(game.board, t.row, t.col, "O")
-				if isWinnerStep(t, game.board) {
+				if !changeValue(game.board, t.row, t.col, "O") {
+					game.state = "p2"
+				} else if isWinnerStep(t, game.board) {
 					game.state = "p2_win"
 				} else {
 					game.state = "p1"
@@ -145,44 +170,41 @@ func game_fsm(game Game) {
 			newGame := userRestartHandler()
 			if newGame {
 				game.p1.points = game.p1.points + 1
-				game.p1.timeLeft = timeDefault
-				game.p2.timeLeft = timeDefault
-				game.board = initBoard(numOfRows, numOfCols)
+				restartGame(game)
 				game.state = "p2"
+			} else {
+				game.state = "end"
 			}
 		case "p1_fall":
 			newGame := userRestartHandler()
 			if newGame {
 				game.p2.points = game.p2.points + 1
-				game.p1.timeLeft = timeDefault
-				game.p2.timeLeft = timeDefault
-				game.board = initBoard(numOfRows, numOfCols)
+				restartGame(game)
 				game.state = "p1"
+			} else {
+				game.state = "end"
 			}
 		case "p1_win":
 			game.p1.points = game.p1.points + 1
-			game.p1.timeLeft = timeDefault
-			game.p2.timeLeft = timeDefault
-			game.board = initBoard(numOfRows, numOfCols)
+			restartGame(game)
 			newGame := userRestartHandler()
 			if newGame {
 				game.state = "p1"
+			} else {
+				game.state = "end"
 			}
 
 		case "p2_win":
 			game.p2.points = game.p2.points + 1
-			game.p1.timeLeft = timeDefault
-			game.p2.timeLeft = timeDefault
-			game.board = initBoard(numOfRows, numOfCols)
+			restartGame(game)
 			newGame := userRestartHandler()
 			if newGame {
 				game.state = "p2"
+			} else {
+				game.state = "end"
 			}
 		}
-		clearScreen()
-		drawMenu(game.p1, game.p2)
-		drawBoard(game.board)
-		drawUserInfo(game)
+		drawScreen(game)
 	}
 }
 
@@ -307,11 +329,12 @@ func drawBoard(board [][]string) {
 	fmt.Print("\n")
 }
 
-func changeValue(board [][]string, rowIndex, colIndex int, target string) [][]string {
+func changeValue(board [][]string, rowIndex, colIndex int, target string) bool {
 	if board[rowIndex][colIndex] == "_" {
 		board[rowIndex][colIndex] = target
+		return true
 	}
-	return board
+	return false
 }
 
 func initBoard(row, col int) [][]string {
