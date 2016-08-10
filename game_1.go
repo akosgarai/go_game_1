@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/garaiakos/go_game_1_input"
+	"github.com/akosgarai/go_game_1_input"
 	"strings"
 	"time"
 )
